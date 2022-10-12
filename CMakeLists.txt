@@ -1,17 +1,16 @@
 cmake_minimum_required(VERSION 3.6)
 project(kettr)
-include_directories(src third_party)
-
-include(FetchContent)
-FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
-                         GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) # The commit hash for 1.9.0. Replace with the latest from: https://github.com/libcpr/cpr/releases
-FetchContent_MakeAvailable(cpr)
+include_directories(src third_party third_party/cpr/include third_party/json/include)
 
 set(SOURCE_FILES
   src/main.cpp
+  src/kettr.cpp
 )
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -lcurl")
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE cpr::cpr)
 
-add_subdirectory(test)
+set(CPR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/cpr/build/lib/libcpr.so")
+
+target_link_libraries(${PROJECT_NAME} ${CPR})
+
+# add_subdirectory(test)
