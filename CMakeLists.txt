@@ -6,11 +6,11 @@ set(SOURCE_FILES
   src/main.cpp
   src/kettr.cpp
 )
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -lcurl")
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 set(CPR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/cpr/build/lib/libcpr.so")
-
 target_link_libraries(${PROJECT_NAME} ${CPR})
 
-# add_subdirectory(test)
+add_subdirectory(test)

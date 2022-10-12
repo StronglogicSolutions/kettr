@@ -11,14 +11,17 @@ FetchContent_Declare(
 )
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(CPR "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/cpr/build/lib/libcpr.so")
+
 FetchContent_MakeAvailable(googletest)
 
 set(SOURCE_FILES
   main.cpp
+  ../src/kettr.cpp
   kettr.test.cpp
 )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -lcurl")
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-
-target_include_directories(${PROJECT_NAME} PRIVATE "../")
-target_link_libraries(${PROJECT_NAME} gtest)
+target_link_libraries(${PROJECT_NAME} gtest ${CPR})
+include_directories("../src" "../third_party" "../third_party/cpr/include" "../third_party/json/include")
