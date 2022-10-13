@@ -1,6 +1,4 @@
 #include "kettr.hpp"
-#include <kutils.hpp>
-#include <nlohmann/json.hpp>
 #include <cpr/cpr.h>
 #include <iostream>
 
@@ -8,13 +6,12 @@ using response_t = cpr::Response;
 using header_t   = cpr::Header;
 using body_t     = cpr::Body;
 using url_t      = cpr::Url;
-using json_t     = nlohmann::json;
 
 static json_t null_auth = json_t{{"user", "null"}, {"token", "null"}};
 
 static bool valid_json_object(const json_t& data)
 {
-  return (data.is_null() && data.is_object());
+  return (!data.is_null() && data.is_object());
 }
 
 namespace urls
@@ -59,7 +56,7 @@ bool
 kettr::login()
 {
   auto response = do_post(urls::login, json_t{{"content", {{"email", m_email}, {"pwd", m_pass}, {"sms", ""}}}});
-  kutils::log(response.text);
+  kutils::log<std::string>(response.text);
 
   if (const auto data = json_t::parse(response.text); valid_json_object(data))
   {
@@ -68,14 +65,14 @@ kettr::login()
     m_name           = data["result"]["user"]["username"];
   }
 
-  return response.status_code > 400;
+  return response.status_code < 400;
 }
 
 bool
 kettr::refresh()
 {
  auto response = do_post(urls::token, {}, get_auth());
- kutils::log(response.text);
+ kutils::log<std::string>(response.text);
  if (const auto data = json_t::parse(response.text); valid_json_object(data))
    m_tokens.refresh  = data["result"]["token"];
   else
@@ -83,23 +80,32 @@ kettr::refresh()
   return true;
 }
 
-std::string
+json_t
 kettr::get_auth() const
 {
   return json_t{{"user", m_name}, {"token", m_tokens.bearer}};
 }
 
+auto has_error = [](const auto r) { return r.error.code != cpr::ErrorCode::OK; };
+
 bool
 kettr::post(const std::string& text) const
 {
+
   auto date = kutils::get_unixtime();
   auto response = do_post(urls::post,
-    json_t{
-      {"content",
-        {"data", {"acl", {"_t", "acl"},
-                 {"_t", "post"},
-                 {"txt", text}, {"udate", date}, {"cdate", date}, {"uid", m_name}}},
-        {"aux", "null"}, {"serial", "post"}}});
+    json_t{{"content", {{"data", {{"acl", {{"_t", "acl"}}},
+                                 {"_t", "post"},
+                                 {"txt", text},
+                                 {"udate", date},
+                                 {"cdate", date},
+                                 {"uid", m_name}}},
+                        {"aux", "null"},
+                        {"serial", "post"}}}}, get_auth());
+  kutils::log<std::string>(response.text);
+
+  if (!has_error(response))
+    kutils::log<std::string>(response.error.message);
   if (const auto data = json_t::parse(response.text); valid_json_object(data))
     return (data["rc"] == "OK");
   return false;
