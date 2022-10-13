@@ -1,8 +1,13 @@
 #include "kettr.hpp"
+#include <thread>
 
 int main(int argc, char** argv)
 {
+  if (kettr kettr{argv[1], argv[2]}; kettr.login())
+  {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    kettr.post("It's great to be back");
+  }
 
-  kettr{argv[1], argv[2]}.login();
   return 0;
 }

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.6)
 project(kettr)
-include_directories(src third_party third_party/cpr/include third_party/json/include)
+include_directories(src third_party third_party/cpr/include third_party/json/include third_party/kutils/include)
 
 set(SOURCE_FILES
   src/main.cpp
