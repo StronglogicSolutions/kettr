@@ -7,7 +7,8 @@ int main(int argc, char** argv)
   {
     kutils::log<std::string>("Login successful");
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    kettr.post("It's great to be back");
+    // kettr.post("It's great to be back");
+    kettr.upload();
   }
 
   return 0;
