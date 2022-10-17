@@ -24,6 +24,13 @@ struct tokens
   }
 };
 
+struct post
+{
+
+};
+
+using posts_t = std::vector<post>;
+
 class kettr
 {
 public:
@@ -32,6 +39,7 @@ public:
   bool       refresh();
   bool       post(const std::string& text, const media_t& media = {})                             const;
   bool       upload()                                                                             const;
+  posts_t    fetch(std::string_view user)                                                         const;
   json_t     get_auth()                                                                           const;
   header_t   get_header(size_t body_size, bool use_default = true)                                const;
   response_t do_post (std::string_view url, const json_t& body = {}, const header_t& header = {}) const;

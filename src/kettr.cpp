@@ -47,7 +47,8 @@ namespace urls
   static const char* post     = "https://api.gettr.com/u/post";
   static const char* media    = "https://upload.gettr.com/media/big/upload";
   static const char* fileurl  = "https://upload.gettr.com";
-
+  std::string        get_user_url(const std::string& user) {
+                         return "https://api.gettr.com/u/user/" + user + "/posts"; }
 } // ns urls
 
 response_t kettr::do_post(std::string_view url, const json_t& body, const header_t& header) const
@@ -245,4 +246,18 @@ kettr::upload() const
     return post("This is the best thing I've ever seen", { file_url });
 
   return false;
+}
+
+posts_t kettr::fetch(std::string_view user) const
+{
+  auto url = urls::get_user_url(user.data());
+  json_t data;
+  /*
+
+    data["result"]["data"]["list"]; posts
+    for post
+      id        = post["activity"]["tgt_id"]
+      post_data = data["result"]["aux"]["post"] [id]
+      xtra_data = data["result"]["aux"]["s_pst"][id]
+  */
 }
