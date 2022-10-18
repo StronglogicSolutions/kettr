@@ -10,6 +10,7 @@ using response_t = cpr::Response;
 using header_t   = cpr::Header;
 using body_t     = cpr::Body;
 using file_t     = cpr::File;
+using params_t   = cpr::Parameters;
 using url_t      = cpr::Url;
 using json_t     = nlohmann::json;
 using media_t    = std::vector<std::string>;
@@ -24,12 +25,28 @@ struct tokens
   }
 };
 
-struct post
+struct post_t
 {
+  post_t(const json_t& data, const json_t& post);
+  void        print()   const;
+  std::string to_json() const;
 
+  std::string name;
+  std::string text;
+  std::string date;
+  media_t     media;
 };
 
-using posts_t = std::vector<post>;
+struct file_info
+{
+  file_info(const std::string& path);
+  std::string name;
+  size_t      size;
+
+  std::string meta;
+};
+
+using posts_t = std::vector<post_t>;
 
 class kettr
 {

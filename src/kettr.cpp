@@ -14,44 +14,72 @@ std::string to_base64(std::string data)
     s.pop_back();
   return s;
 }
-
-size_t get_size(std::string_view path) { return std::filesystem::file_size(path); };
-struct file_info
+//---------------------------------------------------------------------------/
+size_t
+get_size(std::string_view path) { return std::filesystem::file_size(path); };
+//---------------------------------------------------------------------------/
+file_info::file_info(const std::string& path)
 {
-  std::string name;
-  size_t      size;
-  std::string meta;
+  auto filename_idx = path.find_last_of('/');
+  filename_idx == std::string::npos ? 0 : filename_idx + 1;
+  size         = get_size(path);
+  name         = path.substr(filename_idx + 1);
+  auto mime    = kutils::GetMimeType(name);
+  meta         = "filename " + to_base64(name) + ",filetype " + to_base64(mime.name);
+}
 
-  file_info(const std::string& path)
-  {
-    auto filename_idx = path.find_last_of('/');
-    filename_idx == std::string::npos ? 0 : filename_idx + 1;
-    size         = get_size(path);
-    name         = path.substr(filename_idx + 1);
-    auto mime    = kutils::GetMimeType(name);
-    meta         = "filename " + to_base64(name) + ",filetype " + to_base64(mime.name);
-  }
-};
-
-static bool valid_json_object(const json_t& data)
+//---------------------------------------------------------------------------/
+static bool
+valid_json_object(const json_t& data)
 {
   return (!data.is_null() && data.is_object());
 }
-
+//---------------------------------------------------------------------------/
 
 namespace urls
 {
-  static const char* login    = "https://api.gettr.com/u/user/v2/login";
-  static const char* token    = "https://api.gettr.com/v1/chat/token";
-  static const char* activity = "https://analytics-api.gettr.com/api/events/activity";
-  static const char* post     = "https://api.gettr.com/u/post";
-  static const char* media    = "https://upload.gettr.com/media/big/upload";
-  static const char* fileurl  = "https://upload.gettr.com";
-  std::string        get_user_url(const std::string& user) {
-                         return "https://api.gettr.com/u/user/" + user + "/posts"; }
-} // ns urls
 
-response_t kettr::do_post(std::string_view url, const json_t& body, const header_t& header) const
+  static const char*       login    = "https://api.gettr.com/u/user/v2/login";
+  static const char*       token    = "https://api.gettr.com/v1/chat/token";
+  static const char*       activity = "https://analytics-api.gettr.com/api/events/activity";
+  static const char*       post     = "https://api.gettr.com/u/post";
+  static const char*       media    = "https://upload.gettr.com/media/big/upload";
+  static const char*       fileurl  = "https://upload.gettr.com";
+  static const std::string mediaurl = "https://media.gettr.com/";
+  std::string              get_user_url(const std::string& user) {
+                               return "https://api.gettr.com/u/user/" + user + "/posts"; }
+} // ns urls
+//---------------------------------------------------------------------------/
+post_t::post_t(const json_t& data, const json_t& post)
+{
+  auto id   = post["activity"]["tgt_id"].get<std::string>();
+  auto info = data["result"]["aux"]["post"][id];            // auto xtra = data["result"]["aux"]["s_pst"][id];
+  name      = info["uid"].get<std::string>();
+  text      = info["txt"].get<std::string>();
+  date      = kutils::from_unixtime(info["udate"].get<long>());
+  for (const auto& media_data : info["imgs"])
+    media.push_back(urls::mediaurl + media_data.get<std::string>());
+}
+//---------------------------------------------------------------------------/
+void
+post_t::print() const
+{
+  kutils::log("Posted: ", date.c_str(),
+              "\nText: ", text.c_str(),
+              "\nBy: "  , name.c_str());
+}
+//---------------------------------------------------------------------------/
+std::string
+post_t::to_json() const
+{
+  json_t json{{"user", name}, {"date", date}, {"text", text}};
+  for (const auto& url : media)
+    json["media"].push_back(url);
+  return json.dump();
+}
+//---------------------------------------------------------------------------/
+response_t
+kettr::do_post(std::string_view url, const json_t& body, const header_t& header) const
 {
   const auto body_s = body.dump();
   header_t request_header = (header.empty()) ? get_header(body_s.size()) : header;
@@ -60,22 +88,24 @@ response_t kettr::do_post(std::string_view url, const json_t& body, const header
     body_t  {body_s},
     request_header);
 }
-
-response_t kettr::f__post(const std::string& body, const header_t& header) const
+//---------------------------------------------------------------------------/
+response_t
+kettr::f__post(const std::string& body, const header_t& header) const
 {
   return cpr::Post(url_t {urls::post}, body_t{body}, header);
 }
-
-response_t kettr::do_patch(std::string_view url, const file_t& file, const header_t& header) const
+//---------------------------------------------------------------------------/
+response_t
+kettr::do_patch(std::string_view url, const file_t& file, const header_t& header) const
 {
   return cpr::Patch(url_t{url}, cpr::Body(file), header);
 }
-
+//---------------------------------------------------------------------------/
 kettr::kettr(std::string_view email, std::string_view pass)
 : m_email(email),
   m_pass(pass)
 {}
-
+//---------------------------------------------------------------------------/
 bool
 kettr::login()
 {
@@ -91,7 +121,7 @@ kettr::login()
 
   return response.status_code < 400;
 }
-
+//---------------------------------------------------------------------------/
 bool
 kettr::refresh()
 {
@@ -103,14 +133,14 @@ kettr::refresh()
     return false;
   return true;
 }
-
+//---------------------------------------------------------------------------/
 json_t
 kettr::get_auth() const
 {
   return m_tokens.is_null() ? json_t{{"user", "null"}, {"token", "null"}} :
                               json_t{{"user", m_name}, {"token", m_tokens.bearer}};
 }
-
+//---------------------------------------------------------------------------/
 header_t
 kettr::get_header(size_t body_size, bool use_default) const
 {
@@ -150,9 +180,9 @@ kettr::get_header(size_t body_size, bool use_default) const
                                  "Chrome/106.0.0.0 Safari/537.36"},
              {"userid",          m_name}};
 }
-
+//---------------------------------------------------------------------------/
 auto has_error = [](const auto r) { return r.error.code != cpr::ErrorCode::OK || r.status_code >= 400; };
-
+//---------------------------------------------------------------------------/
 bool
 kettr::post(const std::string& text, const media_t& media) const
 {
@@ -194,7 +224,7 @@ kettr::post(const std::string& text, const media_t& media) const
     return (data["rc"] == "OK");
   return false;
 }
-
+//---------------------------------------------------------------------------/
 bool
 kettr::upload() const
 {
@@ -247,17 +277,18 @@ kettr::upload() const
 
   return false;
 }
-
-posts_t kettr::fetch(std::string_view user) const
+//---------------------------------------------------------------------------/
+posts_t
+kettr::fetch(std::string_view user) const
 {
-  auto url = urls::get_user_url(user.data());
-  json_t data;
-  /*
+  posts_t posts;
+  auto response = cpr::Get(url_t{urls::get_user_url(kutils::ToLower(user.data()))},
+                           params_t{{"max", "20"}, {"incl", "posts|userinfo|liked"}});
+  if (has_error(response))
+    return posts;
 
-    data["result"]["data"]["list"]; posts
-    for post
-      id        = post["activity"]["tgt_id"]
-      post_data = data["result"]["aux"]["post"] [id]
-      xtra_data = data["result"]["aux"]["s_pst"][id]
-  */
+  if (const auto data = json_t::parse(response.text); valid_json_object(data))
+    for (const auto post : data["result"]["data"]["list"])
+      posts.emplace_back(post_t{data, post});
+  return posts;
 }
