@@ -29,7 +29,7 @@ struct post_t
 {
   post_t(const json_t& data, const json_t& post);
   void        print()   const;
-  std::string to_json() const;
+  json_t      to_json() const;
 
   std::string name;
   std::string text;
@@ -45,8 +45,24 @@ struct file_info
 
   std::string meta;
 };
+extern bool
+valid_json_object(const json_t& data);
+struct posts_t
+{
+  using posts_data_t = std::vector<post_t>;
 
-using posts_t = std::vector<post_t>;
+  posts_t(std::string_view text)
+  {
+    if (const auto data = json_t::parse(text); valid_json_object(data))
+    for (const auto post : data["result"]["data"]["list"])
+      posts.emplace_back(post_t{data, post});
+  }
+
+std::string
+to_json() const;
+
+  posts_data_t posts;
+};
 
 class kettr
 {

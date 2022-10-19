@@ -29,13 +29,20 @@ file_info::file_info(const std::string& path)
 }
 
 //---------------------------------------------------------------------------/
-static bool
+bool
 valid_json_object(const json_t& data)
 {
   return (!data.is_null() && data.is_object());
 }
 //---------------------------------------------------------------------------/
-
+auto handle_error = [](const auto response)
+{
+  kutils::log(response.error.message);
+  kutils::log(response.text);
+  kutils::log(std::to_string(static_cast<int>(response.error.code)));
+  return false;
+};
+//---------------------------------------------------------------------------/
 namespace urls
 {
 
@@ -69,12 +76,21 @@ post_t::print() const
               "\nBy: "  , name.c_str());
 }
 //---------------------------------------------------------------------------/
-std::string
+json_t
 post_t::to_json() const
 {
   json_t json{{"user", name}, {"date", date}, {"text", text}};
   for (const auto& url : media)
     json["media"].push_back(url);
+  return json;
+}
+//---------------------------------------------------------------------------/
+std::string
+posts_t::to_json() const
+{
+  json_t json = json_t::array();
+  for (const post_t& post : posts)
+    json.emplace_back(post.to_json());
   return json.dump();
 }
 //---------------------------------------------------------------------------/
@@ -228,14 +244,6 @@ kettr::post(const std::string& text, const media_t& media) const
 bool
 kettr::upload() const
 {
-  auto handle_error = [](const auto response)
-  {
-    kutils::log(response.error.message);
-    kutils::log(response.text);
-    kutils::log(std::to_string(static_cast<int>(response.error.code)));
-    return false;
-  };
-
   std::string upload_destination;
   std::string path  = "/home/logicp/Pictures/suffer.png";
   auto filedata     = file_info(path);
@@ -281,14 +289,9 @@ kettr::upload() const
 posts_t
 kettr::fetch(std::string_view user) const
 {
-  posts_t posts;
   auto response = cpr::Get(url_t{urls::get_user_url(kutils::ToLower(user.data()))},
                            params_t{{"max", "20"}, {"incl", "posts|userinfo|liked"}});
   if (has_error(response))
-    return posts;
-
-  if (const auto data = json_t::parse(response.text); valid_json_object(data))
-    for (const auto post : data["result"]["data"]["list"])
-      posts.emplace_back(post_t{data, post});
-  return posts;
+    handle_error(response);
+  return posts_t{response.text};
 }
