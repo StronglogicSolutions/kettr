@@ -33,7 +33,7 @@ struct post_t
 
   std::string name;
   std::string text;
-  std::string date;
+  long        date;
   media_t     media;
 };
 

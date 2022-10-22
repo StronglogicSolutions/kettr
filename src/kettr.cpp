@@ -63,7 +63,7 @@ post_t::post_t(const json_t& data, const json_t& post)
   auto info = data["result"]["aux"]["post"][id];            // auto xtra = data["result"]["aux"]["s_pst"][id];
   name      = info["uid"].get<std::string>();
   text      = info["txt"].get<std::string>();
-  date      = kutils::from_unixtime(info["udate"].get<long>());
+  date      = info["udate"].get<long>();
   for (const auto& media_data : info["imgs"])
     media.push_back(urls::mediaurl + media_data.get<std::string>());
 }
@@ -71,7 +71,7 @@ post_t::post_t(const json_t& data, const json_t& post)
 void
 post_t::print() const
 {
-  kutils::log("Posted: ", date.c_str(),
+  kutils::log("Posted: ", std::to_string(date).c_str(),
               "\nText: ", text.c_str(),
               "\nBy: "  , name.c_str());
 }
