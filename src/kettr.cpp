@@ -18,6 +18,8 @@ std::string to_base64(std::string data)
 size_t
 get_size(std::string_view path) { return std::filesystem::file_size(path); };
 //---------------------------------------------------------------------------/
+auto has_error = [](const auto r) { return r.error.code != cpr::ErrorCode::OK || r.status_code >= 400; };
+//---------------------------------------------------------------------------/
 file_info::file_info(const std::string& path)
 {
   auto filename_idx = path.find_last_of('/');
@@ -27,7 +29,6 @@ file_info::file_info(const std::string& path)
   auto mime    = kutils::GetMimeType(name);
   meta         = "filename " + to_base64(name) + ",filetype " + to_base64(mime.name);
 }
-
 //---------------------------------------------------------------------------/
 bool
 valid_json_object(const json_t& data)
@@ -60,7 +61,7 @@ namespace urls
 post_t::post_t(const json_t& data, const json_t& post)
 {
   auto id   = post["activity"]["tgt_id"].get<std::string>();
-  auto info = data["result"]["aux"]["post"][id];            // auto xtra = data["result"]["aux"]["s_pst"][id];
+  auto info = data["result"]["aux"]["post"][id];
   name      = info["uid"].get<std::string>();
   text      = info["txt"].get<std::string>();
   date      = info["udate"].get<long>();
@@ -85,6 +86,13 @@ post_t::to_json() const
   return json;
 }
 //---------------------------------------------------------------------------/
+posts_t::posts_t(std::string_view text)
+{
+  if (const auto data = json_t::parse(text); valid_json_object(data))
+  for (const auto post : data["result"]["data"]["list"])
+    posts.emplace_back(post_t{data, post});
+}
+//---------------------------------------------------------------------------/
 std::string
 posts_t::to_json() const
 {
@@ -103,12 +111,6 @@ kettr::do_post(std::string_view url, const json_t& body, const header_t& header)
     url_t   {url},
     body_t  {body_s},
     request_header);
-}
-//---------------------------------------------------------------------------/
-response_t
-kettr::f__post(const std::string& body, const header_t& header) const
-{
-  return cpr::Post(url_t {urls::post}, body_t{body}, header);
 }
 //---------------------------------------------------------------------------/
 response_t
@@ -197,8 +199,6 @@ kettr::get_header(size_t body_size, bool use_default) const
              {"userid",          m_name}};
 }
 //---------------------------------------------------------------------------/
-auto has_error = [](const auto r) { return r.error.code != cpr::ErrorCode::OK || r.status_code >= 400; };
-//---------------------------------------------------------------------------/
 bool
 kettr::post(const std::string& text, const media_t& media) const
 {
@@ -212,30 +212,33 @@ kettr::post(const std::string& text, const media_t& media) const
                                  {"aux",    "null"},
                                  {"serial", "post"}}}};
   response_t response;
+  header_t   header;
   if (media.size())
   {
     body["content"]["data"]["imgs"]    = json_t(media);
     body["content"]["data"]["vid_wid"] = 260;
     body["content"]["data"]["vid_hgt"] = 260;
     body["content"]["data"]["meta"]    = json_t::array();
-
+    // body_s = body.dump();
     //---------------- Alt method below --------------------
     // auto boundary = "--WebKitFormBoundary" + to_base64(kutils::generate_random_chars());
-    // auto body_s   = "----" + boundary + '\n' +
+    //      body_s   = "----" + boundary + '\n' +
     //                 "Content-Disposition: form-data; name=\"content\"" + "\n\n" +
     //                 body["content"].dump() + '\n' +
     //                 + "----" + boundary + "--";
-    // auto header   = get_header(body_s.size());
-    // header["content-type"] = "multipart/form-data; boundary=" + boundary;
-    // response = f__post(body_s, header);
-
+    // header   = get_header(body_s.size());
+    // header["content-type"] = "multipart/form-data; boundary=--" + boundary;
+    // header["enctype"] = "multipart/form-data";
+    // response = cpr::Post(url_t{urls::post}, body_t{body_s}, header);
   }
-  // else
-    response = do_post(urls::post, body, get_header(body.dump().size())); // Ugly
+
+  header   = get_header(body.dump().size());
+  response = do_post(urls::post, body, header);
   kutils::log<std::string>(response.text);
 
-  if (!has_error(response))
+  if (has_error(response))
     kutils::log<std::string>(response.error.message);
+
   if (const auto data = json_t::parse(response.text); valid_json_object(data))
     return (data["rc"] == "OK");
   return false;
@@ -277,6 +280,7 @@ kettr::upload() const
   if (has_error(response))
     return handle_error(response);
 
+  kutils::log("Upload patch successful");
   auto response_body = json_t::parse(response.text);
   auto file_url      = response_body["ori"].get<std::string>(); if (file_url.back() == '\n') file_url.pop_back();
 

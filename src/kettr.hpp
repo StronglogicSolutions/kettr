@@ -50,13 +50,7 @@ valid_json_object(const json_t& data);
 struct posts_t
 {
   using posts_data_t = std::vector<post_t>;
-
-  posts_t(std::string_view text)
-  {
-    if (const auto data = json_t::parse(text); valid_json_object(data))
-    for (const auto post : data["result"]["data"]["list"])
-      posts.emplace_back(post_t{data, post});
-  }
+  posts_t(std::string_view text);
 
 std::string
 to_json() const;
@@ -68,18 +62,19 @@ class kettr
 {
 public:
   kettr(std::string_view email, std::string_view pass);
+
   bool       login();
   bool       refresh();
   bool       post(const std::string& text, const media_t& media = {})                             const;
   bool       upload()                                                                             const;
   posts_t    fetch(std::string_view user)                                                         const;
+
+private:
   json_t     get_auth()                                                                           const;
   header_t   get_header(size_t body_size, bool use_default = true)                                const;
   response_t do_post (std::string_view url, const json_t& body = {}, const header_t& header = {}) const;
-  response_t f__post (const std::string& body, const header_t& header = {})                       const;
   response_t do_patch(std::string_view url, const file_t& file,      const header_t& header)      const;
 
-private:
   std::string_view m_email;
   std::string_view m_pass;
   std::string      m_name;
