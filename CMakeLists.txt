@@ -8,9 +8,11 @@ set(SOURCE_FILES
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -lcurl")
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+add_executable(${PROJECT_NAME}_client ${SOURCE_FILES})
+add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
 set(CPR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/cpr/build/lib/libcpr.so")
+target_link_libraries(${PROJECT_NAME}_client ${CPR})
 target_link_libraries(${PROJECT_NAME} ${CPR})
 
 add_subdirectory(test)
