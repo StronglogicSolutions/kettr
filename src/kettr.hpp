@@ -61,7 +61,7 @@ to_json() const;
 class kettr
 {
 public:
-  kettr(std::string_view email, std::string_view pass);
+  kettr(const std::string& email, const std::string& pass);
 
   bool       login();
   bool       refresh();
@@ -75,8 +75,8 @@ private:
   response_t do_post (std::string_view url, const json_t& body = {}, const header_t& header = {}) const;
   response_t do_patch(std::string_view url, const file_t& file,      const header_t& header)      const;
 
-  std::string_view m_email;
-  std::string_view m_pass;
-  std::string      m_name;
-  tokens           m_tokens;
+  std::string m_email;
+  std::string m_pass;
+  std::string m_name;
+  tokens      m_tokens;
 };

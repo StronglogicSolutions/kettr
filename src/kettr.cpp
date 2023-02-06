@@ -119,7 +119,7 @@ kettr::do_patch(std::string_view url, const file_t& file, const header_t& header
   return cpr::Patch(url_t{url}, cpr::Body(file), header);
 }
 //---------------------------------------------------------------------------/
-kettr::kettr(std::string_view email, std::string_view pass)
+kettr::kettr(const std::string& email, const std::string& pass)
 : m_email(email),
   m_pass(pass)
 {}
