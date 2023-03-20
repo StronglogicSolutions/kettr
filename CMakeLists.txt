@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.6)
 project(kettr)
-include_directories(src third_party third_party/cpr/include third_party/json/include third_party/kutils/include)
+include_directories(src third_party third_party/cpr/include third_party/json/include third_party/kutils/include third_party/inih/cpp)
 
 set(SOURCE_FILES
   src/main.cpp
   src/kettr.cpp
+  third_party/inih/ini.c
+  third_party/inih/cpp/INIReader.cpp
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -lcurl")
