@@ -302,7 +302,7 @@ kettr::upload() const
   auto file_url      = response_body["ori"].get<std::string>(); if (file_url.back() == '\n') file_url.pop_back();
 
   if (response_body["status"].get<int>() == 0)             // Create post
-    return post("This is the best thing I've ever seen", { file_url });
+    return post("This is the best thing I've ever seen", { file_url }).is_valid(); // TODO: return post?
 
   return false;
 }
