@@ -4,3 +4,9 @@
 [submodule "third_party/cpr"]
 	path = third_party/cpr
 	url = https://github.com/libcpr/cpr
+[submodule "third_party/kutils"]
+	path = third_party/kutils
+	url = https://github.com/StronglogicSolutions/kutils
+[submodule "third_party/inih"]
+	path = third_party/inih
+	url = https://github.com/benhoyt/inih
