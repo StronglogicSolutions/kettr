@@ -58,6 +58,8 @@ namespace urls
                                return "https://api.gettr.com/u/user/" + user + "/posts"; }
 } // ns urls
 //---------------------------------------------------------------------------/
+post_t::post_t() {}
+//
 post_t::post_t(const json_t& data, const json_t& post)
 {
   auto id   = post["activity"]["tgt_id"].get<std::string>();
@@ -67,6 +69,23 @@ post_t::post_t(const json_t& data, const json_t& post)
   date      = info["udate"].get<long>();
   for (const auto& media_data : info["imgs"])
     media.push_back(urls::mediaurl + media_data.get<std::string>());
+}
+//---------------------------------------------------------------------------/
+post_t post_t::make(const json_t& data)
+{
+  post_t post;
+  if (valid_json_object(data))
+  {
+    post.name = data["uid"]  .get<std::string>();
+    post.text = data["txt"]  .get<std::string>();
+    post.date = data["udate"].get<long>       ();
+  }
+  return post;
+}
+//---------------------------------------------------------------------------/
+bool post_t::is_valid() const
+{
+  return (!name.empty() && !text.empty());
 }
 //---------------------------------------------------------------------------/
 void
@@ -199,7 +218,7 @@ kettr::get_header(size_t body_size, bool use_default) const
              {"userid",          m_name}};
 }
 //---------------------------------------------------------------------------/
-bool
+post_t
 kettr::post(const std::string& text, const media_t& media) const
 {
   auto date = kutils::get_unixtime();
@@ -239,9 +258,7 @@ kettr::post(const std::string& text, const media_t& media) const
   if (has_error(response))
     kutils::log<std::string>(response.error.message);
 
-  if (const auto data = json_t::parse(response.text); valid_json_object(data))
-    return (data["rc"] == "OK");
-  return false;
+  return post_t::make(json_t::parse(response.text));
 }
 //---------------------------------------------------------------------------/
 bool
@@ -285,7 +302,7 @@ kettr::upload() const
   auto file_url      = response_body["ori"].get<std::string>(); if (file_url.back() == '\n') file_url.pop_back();
 
   if (response_body["status"].get<int>() == 0)             // Create post
-    return post("This is the best thing I've ever seen", { file_url });
+    return post("This is the best thing I've ever seen", { file_url }).is_valid(); // TODO: return post?
 
   return false;
 }

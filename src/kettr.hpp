@@ -27,9 +27,13 @@ struct tokens
 
 struct post_t
 {
+  post_t();
   post_t(const json_t& data, const json_t& post);
-  void        print()   const;
-  json_t      to_json() const;
+  void   print()    const;
+  json_t to_json()  const;
+  bool   is_valid() const;
+
+  post_t static make(const json_t& data);
 
   std::string name;
   std::string text;
@@ -65,8 +69,8 @@ public:
 
   bool       login();
   bool       refresh();
-  bool       post(const std::string& text, const media_t& media = {})                             const;
   bool       upload()                                                                             const;
+  post_t     post(const std::string& text, const media_t& media = {})                             const;
   posts_t    fetch(std::string_view user)                                                         const;
 
 private:
