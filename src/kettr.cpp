@@ -74,7 +74,7 @@ post_t::post_t(const json_t& data, const json_t& post)
 post_t post_t::make(const json_t& data)
 {
   post_t post;
-  if (valid_json_object(data))
+  if (valid_json_object(data) && data.contains("uid") && data.contains("txt") && data.contains("udate"))
   {
     post.name = data["uid"]  .get<std::string>();
     post.text = data["txt"]  .get<std::string>();
@@ -146,9 +146,7 @@ kettr::kettr(const std::string& email, const std::string& pass)
 bool
 kettr::login()
 {
-  auto response = do_post(urls::login, json_t{{"content", {{"email", m_email}, {"pwd", m_pass}, {"sms", ""}}}});
-  kutils::log<std::string>(response.text);
-
+  const auto response = do_post(urls::login, json_t{{"content", {{"email", m_email}, {"pwd", m_pass}, {"sms", ""}}}});
   if (const auto data = json_t::parse(response.text); valid_json_object(data))
   {
     m_tokens.bearer  = data["result"]["token"];
@@ -253,12 +251,16 @@ kettr::post(const std::string& text, const media_t& media) const
 
   header   = get_header(body.dump().size());
   response = do_post(urls::post, body, header);
-  kutils::log<std::string>(response.text);
 
   if (has_error(response))
     kutils::log<std::string>(response.error.message);
-
-  return post_t::make(json_t::parse(response.text));
+  else
+  if (const auto data = json_t::parse(response.text); !data.is_null())
+  {
+    const auto& payload = data["result"]["data"];
+    return post_t::make(payload);
+  }
+  return post_t{};
 }
 //---------------------------------------------------------------------------/
 bool
